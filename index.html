@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>元素召喚術 - GitHub 部署版</title>
+    <!-- 核心依賴庫 -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700&display=swap');
+
+        :root {
+            --gold: #d4af37;
+            --dark-brown: #3d1f0a;
+            --scroll-bg: #fdf5e6;
+        }
+
+        body {
+            background-color: #0f0f0f;
+            color: var(--gold);
+            font-family: 'Noto Serif TC', serif;
+            overflow: hidden;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* 卷軸主容器 */
+        .scroll-container {
+            position: relative;
+            width: 95vw;
+            max-width: 850px;
+            height: 650px;
+            
+            /* 【更換背景圖處】 -------------------------------------------------- */
+            /* 請將下方的網址替換為你上傳到 GitHub 或圖床的背景圖連結 */
+            background-image: url('https://pixhost.to/show/11498/683055605_1.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            /* ------------------------------------------------------------------ */
+
+            background-color: var(--scroll-bg);
+            border-left: 35px solid #5d2e0e;
+            border-right: 35px solid #5d2e0e;
+            box-shadow: 0 0 60px rgba(0,0,0,0.9), inset 0 0 120px rgba(139, 69, 19, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 50px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* 裝飾雲紋 */
+        .scroll-decoration {
+            position: absolute;
+            width: 100%;
+            height: 60px;
+            left: 0;
+            fill: #8b4513;
+            opacity: 0.2;
+            pointer-events: none;
+        }
+        .scroll-top { top: 10px; }
+        .scroll-bottom { bottom: 10px; transform: rotate(180deg); }
+
+        .scroll-content {
+            z-index: 10;
+            text-align: center;
+            width: 100%;
+        }
+
+        /* 攝影機預覽視窗 */
+        #video-container {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            width: 180px;
+            height: 135px;
+            border: 4px solid #5d2e0e;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            z-index: 50;
+            transform: scaleX(-1); /* 鏡像顯示 */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 元素圖示樣式 */
+        .element-slot {
+            width: 90px;
+            height: 90px;
+            border: 3px solid #8b4513;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            background: rgba(255, 255, 255, 0.6);
+            position: relative;
+            padding: 12px;
+            overflow: hidden;
+        }
+
+        .element-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: sepia(0.5);
+            transition: all 0.4s ease;
+        }
+
+        .element-slot.active {
+            transform: scale(1.15);
+            background: #fff;
+            border-color: var(--gold);
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.7);
+        }
+
+        .element-slot.active img {
+            filter: sepia(0) drop-shadow(0 0 5px var(--gold));
+        }
+
+        .element-slot.complete {
+            background: #d1d1d1;
+            border-color: #4a3c2c;
+            opacity: 0.6;
+        }
+
+        .gesture-hint {
+            margin-top: 12px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #5d2e0e;
+        }
+
+        /* 魔法陣動畫控制 */
+        #magic-circle-container {
+            position: absolute;
+            top: 55%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.6);
+            width: 500px;
+            height: 500px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 1.5s ease-out;
+            z-index: 5;
+        }
+
+        @keyframes rotate-magic {
+            0% { transform: translate(-50%, -50%) rotate(0deg) scale(1.1); }
+            100% { transform: translate(-50%, -50%) rotate(360deg) scale(1.1); }
+        }
+
+        .activated #magic-circle-container {
+            opacity: 0.8;
+            animation: rotate-magic 15s linear infinite;
+        }
+
+        /* 魔法陣圖片樣式 */
+        #magic-circle-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 0 15px var(--gold));
+        }
+
+        .status-msg {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gold);
+            color: #3d1f0a;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: bold;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+        }
+
+        #gesture-preview {
+            text-shadow: 0 2px 4px rgba(255,255,255,0.5);
+        }
+    </style>
+</head>
+<body>
+
+<div class="status-msg" id="msgBox">初始化召喚陣...</div>
+
+<div class="scroll-container" id="mainGame">
+    <!-- 背景裝飾 -->
+    <svg class="scroll-decoration scroll-top" viewBox="0 0 800 60"><path d="M0,30 Q200,0 400,30 T800,30 M0,40 Q200,10 400,40 T800,40" stroke="#8b4513" fill="none" stroke-width="2"/></svg>
+    <svg class="scroll-decoration scroll-bottom" viewBox="0 0 800 60"><path d="M0,30 Q200,0 400,30 T800,30 M0,40 Q200,10 400,40 T800,40" stroke="#8b4513" fill="none" stroke-width="2"/></svg>
+
+    <div class="scroll-content">
+        <h1 class="text-5xl mb-4 text-amber-950 font-bold tracking-[0.2em]">元素召喚儀式</h1>
+        <p class="mb-10 text-amber-900 text-lg opacity-80">感應自然律動，重現遠古禁咒</p>
+        
+        <div class="flex justify-center mb-12">
+            <!-- 火元素 -->
+            <div class="flex flex-col items-center mx-6">
+                <div id="slot-0" class="element-slot active">
+                    <!-- 【更換火圖示】 -->
+                    <img src="https://api.iconify.design/heroicons-outline/fire.svg" alt="火">
+                </div>
+                <span class="gesture-hint">火 (拳頭)</span>
+            </div>
+
+            <!-- 風元素 -->
+            <div class="flex flex-col items-center mx-6">
+                <div id="slot-1" class="element-slot">
+                    <!-- 【更換風圖示】 -->
+                    <img src="https://api.iconify.design/ph/wind-bold.svg" alt="風">
+                </div>
+                <span class="gesture-hint">風 (布)</span>
+            </div>
+
+            <!-- 雷元素 -->
+            <div class="flex flex-col items-center mx-6">
+                <div id="slot-2" class="element-slot">
+                    <!-- 【更換雷圖示】 -->
+                    <img src="https://api.iconify.design/bi/lightning-charge.svg" alt="雷">
+                </div>
+                <span class="gesture-hint">雷 (食指)</span>
+            </div>
+        </div>
+
+        <div id="hint" class="text-xl font-bold text-amber-900 mb-2">等待靈氣感應...</div>
+        <div id="gesture-preview" class="text-2xl font-bold text-amber-700 min-h-[40px]"></div>
+
+        <button onclick="resetGame()" class="mt-10 px-12 py-3 bg-amber-950 text-amber-50 rounded-full hover:bg-amber-900 transition-all shadow-xl font-bold tracking-widest">重啟召喚儀式</button>
+    </div>
+
+    <!-- 【更換魔法陣圖片處】 ------------------------------------------------------- -->
+    <div id="magic-circle-container">
+        <!-- 推薦使用去背的 PNG 圖片，效果更佳 -->
+        <!-- 如果你想換回原本的 SVG 魔法陣，也可以直接把 <img> 標籤換成 SVG 程式碼 -->
+        <img id="magic-circle-img" src="https://www.svgrepo.com/show/396954/magic-circle.svg" alt="魔法陣">
+    </div>
+    <!-- ------------------------------------------------------------------------- -->
+
+    <!-- 攝影機容器 -->
+    <div id="video-container">
+        <video id="input_video"></video>
+    </div>
+</div>
+
+<script>
+    const videoElement = document.getElementById('input_video');
+    const hintElement = document.getElementById('hint');
+    const gesturePreview = document.getElementById('gesture-preview');
+    const msgBox = document.getElementById('msgBox');
+    const mainGame = document.getElementById('mainGame');
+
+    let currentStep = 0;
+    const sequence = ['Fist', 'Open', 'Point'];
+    const stepNames = ['火 (拳頭)', '風 (布)', '雷 (食指朝天)'];
+    let isLocked = false;
+
+    // 顯示自定義訊息
+    function showMsg(text) {
+        msgBox.innerText = text;
+        msgBox.style.display = 'block';
+        setTimeout(() => msgBox.style.display = 'none', 3000);
+    }
+
+    // 重設遊戲狀態
+    function resetGame() {
+        currentStep = 0;
+        isLocked = false;
+        mainGame.classList.remove('activated');
+        for (let i = 0; i < 3; i++) {
+            const slot = document.getElementById(`slot-${i}`);
+            slot.classList.remove('active', 'complete');
+        }
+        document.getElementById('slot-0').classList.add('active');
+        hintElement.innerText = "◈ 請結出手印：火 ◈";
+        gesturePreview.innerText = "";
+    }
+
+    // MediaPipe 處理結果回傳
+    function onResults(results) {
+        if (isLocked) return;
+
+        let detectedGesture = "None";
+        
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            const landmarks = results.multiHandLandmarks[0];
+            
+            // 判斷手指開合邏輯
+            const fingerTips = [8, 12, 16, 20];
+            const fingerMcp = [5, 9, 13, 17];
+            
+            let openFingers = 0;
+            for (let i = 0; i < 4; i++) {
+                if (landmarks[fingerTips[i]].y < landmarks[fingerMcp[i]].y) {
+                    openFingers++;
+                }
+            }
+
+            // 手勢定義
+            if (openFingers === 0) {
+                detectedGesture = "Fist";
+                gesturePreview.innerText = "感應到元素：火 (拳頭)";
+            } else if (openFingers === 4) {
+                detectedGesture = "Open";
+                gesturePreview.innerText = "感應到元素：風 (布)";
+            } else if (openFingers === 1 && landmarks[8].y < landmarks[5].y) {
+                detectedGesture = "Point";
+                gesturePreview.innerText = "感應到元素：雷 (食指)";
+            } else {
+                gesturePreview.innerText = "手印解析中...";
+            }
+
+            // 檢查是否符合當前步驟
+            if (detectedGesture === sequence[currentStep]) {
+                handleStepSuccess();
+            }
+        } else {
+            gesturePreview.innerText = "等待靈氣感應...";
+        }
+    }
+
+    // 成功完成一個手勢
+    function handleStepSuccess() {
+        isLocked = true;
+        const currentSlot = document.getElementById(`slot-${currentStep}`);
+        currentSlot.classList.remove('active');
+        currentSlot.classList.add('complete');
+        
+        showMsg(`元素共鳴成功：${stepNames[currentStep]}`);
+
+        currentStep++;
+        
+        if (currentStep < sequence.length) {
+            const nextSlot = document.getElementById(`slot-${currentStep}`);
+            nextSlot.classList.add('active');
+            hintElement.innerText = `◈ 下一個元素：${stepNames[currentStep]} ◈`;
+            // 防止瞬間誤觸下一個，延遲 1.2 秒
+            setTimeout(() => { isLocked = false; }, 1200);
+        } else {
+            // 最終召喚成功
+            hintElement.innerText = "【 禁咒．全元素大陣啟動 】";
+            mainGame.classList.add('activated');
+            showMsg("全元素契合！魔法陣召喚成功！");
+        }
+    }
+
+    // 初始化 MediaPipe Hands
+    const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.7
+    });
+
+    hands.onResults(onResults);
+
+    // 初始化 攝影機
+    const camera = new Camera(videoElement, {
+        onFrame: async () => {
+            await hands.send({image: videoElement});
+        },
+        width: 640,
+        height: 480
+    });
+
+    window.onload = () => {
+        camera.start().catch(err => {
+            showMsg("感應裝置（攝影機）啟動失敗");
+            console.error(err);
+        });
+        resetGame();
+    };
+</script>
+
+</body>
+</html>
