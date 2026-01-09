@@ -38,8 +38,7 @@
             height: 650px;
             
             /* 【更換背景圖處】 -------------------------------------------------- */
-            /* 請將下方的網址替換為你上傳到 GitHub 或圖床的背景圖連結 */
-            background-image: 1.jpg;
+            background-image: "1.jpg">;
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -88,7 +87,7 @@
             overflow: hidden;
             background: #000;
             z-index: 50;
-            transform: scaleX(-1); /* 鏡像顯示 */
+            transform: scaleX(-1);
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
 
@@ -175,6 +174,7 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
+            /* 如果你的圖片本身顏色不夠亮，可以透過 filter 調整發光感 */
             filter: drop-shadow(0 0 15px var(--gold));
         }
 
@@ -215,7 +215,6 @@
             <!-- 火元素 -->
             <div class="flex flex-col items-center mx-6">
                 <div id="slot-0" class="element-slot active">
-                    <!-- 【更換火圖示】 -->
                     <img src="https://api.iconify.design/heroicons-outline/fire.svg" alt="火">
                 </div>
                 <span class="gesture-hint">火 (拳頭)</span>
@@ -224,7 +223,6 @@
             <!-- 風元素 -->
             <div class="flex flex-col items-center mx-6">
                 <div id="slot-1" class="element-slot">
-                    <!-- 【更換風圖示】 -->
                     <img src="https://api.iconify.design/ph/wind-bold.svg" alt="風">
                 </div>
                 <span class="gesture-hint">風 (布)</span>
@@ -233,7 +231,6 @@
             <!-- 雷元素 -->
             <div class="flex flex-col items-center mx-6">
                 <div id="slot-2" class="element-slot">
-                    <!-- 【更換雷圖示】 -->
                     <img src="https://api.iconify.design/bi/lightning-charge.svg" alt="雷">
                 </div>
                 <span class="gesture-hint">雷 (食指)</span>
@@ -248,9 +245,8 @@
 
     <!-- 【更換魔法陣圖片處】 ------------------------------------------------------- -->
     <div id="magic-circle-container">
-        <!-- 推薦使用去背的 PNG 圖片，效果更佳 -->
-        <!-- 如果你想換回原本的 SVG 魔法陣，也可以直接把 <img> 標籤換成 SVG 程式碼 -->
-        <img id="magic-circle-img" src="https://www.svgrepo.com/show/396954/magic-circle.svg" alt="魔法陣">
+        <!-- 直接修改下方 src 引號內的連結即可 -->
+        <img id="magic-circle-img" src="魔法陣.png">
     </div>
     <!-- ------------------------------------------------------------------------- -->
 
@@ -272,14 +268,12 @@
     const stepNames = ['火 (拳頭)', '風 (布)', '雷 (食指朝天)'];
     let isLocked = false;
 
-    // 顯示自定義訊息
     function showMsg(text) {
         msgBox.innerText = text;
         msgBox.style.display = 'block';
         setTimeout(() => msgBox.style.display = 'none', 3000);
     }
 
-    // 重設遊戲狀態
     function resetGame() {
         currentStep = 0;
         isLocked = false;
@@ -293,27 +287,17 @@
         gesturePreview.innerText = "";
     }
 
-    // MediaPipe 處理結果回傳
     function onResults(results) {
         if (isLocked) return;
-
         let detectedGesture = "None";
-        
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
             const landmarks = results.multiHandLandmarks[0];
-            
-            // 判斷手指開合邏輯
             const fingerTips = [8, 12, 16, 20];
             const fingerMcp = [5, 9, 13, 17];
-            
             let openFingers = 0;
             for (let i = 0; i < 4; i++) {
-                if (landmarks[fingerTips[i]].y < landmarks[fingerMcp[i]].y) {
-                    openFingers++;
-                }
+                if (landmarks[fingerTips[i]].y < landmarks[fingerMcp[i]].y) openFingers++;
             }
-
-            // 手勢定義
             if (openFingers === 0) {
                 detectedGesture = "Fist";
                 gesturePreview.innerText = "感應到元素：火 (拳頭)";
@@ -326,72 +310,55 @@
             } else {
                 gesturePreview.innerText = "手印解析中...";
             }
-
-            // 檢查是否符合當前步驟
-            if (detectedGesture === sequence[currentStep]) {
-                handleStepSuccess();
-            }
+            if (detectedGesture === sequence[currentStep]) handleStepSuccess();
         } else {
             gesturePreview.innerText = "等待靈氣感應...";
         }
     }
 
-    // 成功完成一個手勢
     function handleStepSuccess() {
         isLocked = true;
         const currentSlot = document.getElementById(`slot-${currentStep}`);
         currentSlot.classList.remove('active');
         currentSlot.classList.add('complete');
-        
         showMsg(`元素共鳴成功：${stepNames[currentStep]}`);
-
         currentStep++;
-        
         if (currentStep < sequence.length) {
             const nextSlot = document.getElementById(`slot-${currentStep}`);
             nextSlot.classList.add('active');
             hintElement.innerText = `◈ 下一個元素：${stepNames[currentStep]} ◈`;
-            // 防止瞬間誤觸下一個，延遲 1.2 秒
             setTimeout(() => { isLocked = false; }, 1200);
         } else {
-            // 最終召喚成功
             hintElement.innerText = "【 禁咒．全元素大陣啟動 】";
             mainGame.classList.add('activated');
             showMsg("全元素契合！魔法陣召喚成功！");
         }
     }
 
-    // 初始化 MediaPipe Hands
     const hands = new Hands({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
-
     hands.setOptions({
         maxNumHands: 1,
         modelComplexity: 1,
         minDetectionConfidence: 0.7,
         minTrackingConfidence: 0.7
     });
-
     hands.onResults(onResults);
 
-    // 初始化 攝影機
     const camera = new Camera(videoElement, {
-        onFrame: async () => {
-            await hands.send({image: videoElement});
-        },
-        width: 640,
-        height: 480
+        onFrame: async () => { await hands.send({image: videoElement}); },
+        width: 640, height: 480
     });
 
     window.onload = () => {
-        camera.start().catch(err => {
-            showMsg("感應裝置（攝影機）啟動失敗");
-            console.error(err);
-        });
+        camera.start().catch(err => showMsg("感應裝置啟動失敗"));
         resetGame();
     };
 </script>
+
+</body>
+</html>
 
 </body>
 </html>
