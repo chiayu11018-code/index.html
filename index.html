@@ -15,7 +15,7 @@
         :root {
             --gold: #d4af37;
             --dark-brown: #3d1f0a;
-            --magic-glow: rgba(212, 175, 55, 0.8);
+            --magic-glow: rgba(212, 175, 55, 0.9);
         }
 
         body {
@@ -36,7 +36,8 @@
             width: 95vw;
             max-width: 850px;
             height: 650px;
-            background-image: linear-gradient(rgba(253, 245, 230, 0.4), rgba(253, 245, 230, 0.4)), url('1.jpg');
+            /* 背景圖：請確認 GitHub 上的檔名是 1.jpg 而不是 1.JPG */
+            background-image: linear-gradient(rgba(253, 245, 230, 0.3), rgba(253, 245, 230, 0.3)), url('1.jpg');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -53,15 +54,16 @@
 
         /* 內容區塊 */
         .scroll-content {
-            z-index: 10;
+            z-index: 20;
             text-align: center;
             width: 100%;
-            transition: opacity 1s ease;
+            transition: opacity 1s ease, visibility 1s ease;
         }
 
-        /* 隱藏 UI 的類別 */
+        /* 召喚成功後隱藏 UI */
         .hide-ui {
-            opacity: 0;
+            opacity: 0 !important;
+            visibility: hidden !important;
             pointer-events: none;
         }
 
@@ -79,7 +81,7 @@
             z-index: 50;
             transform: scaleX(-1);
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            transition: opacity 1s ease;
+            transition: opacity 0.8s ease;
         }
 
         video {
@@ -101,7 +103,6 @@
             background: rgba(255, 255, 255, 0.7);
             position: relative;
             padding: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
         .element-slot img {
@@ -109,7 +110,6 @@
             height: 100%;
             object-fit: contain;
             filter: sepia(0.8);
-            transition: all 0.4s ease;
         }
 
         .element-slot.active {
@@ -125,7 +125,6 @@
 
         .element-slot.complete {
             background: rgba(0, 0, 0, 0.1);
-            border-color: #4a3c2c;
             opacity: 0.5;
         }
 
@@ -137,17 +136,17 @@
             text-shadow: 0 1px 2px rgba(255,255,255,0.8);
         }
 
-        /* 魔法陣動畫控制 */
+        /* 魔法陣容器 - 初始隱藏 */
         #magic-circle-container {
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%) scale(0.2);
-            width: 550px;
-            height: 550px;
+            transform: translate(-50%, -50%) scale(0.3);
+            width: 600px;
+            height: 600px;
             opacity: 0;
             pointer-events: none;
-            transition: opacity 2s ease, transform 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: opacity 1.5s ease, transform 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 5;
             display: flex;
             flex-direction: column;
@@ -155,17 +154,20 @@
             align-items: center;
         }
 
-        @keyframes rotate-magic {
-            from { transform: translate(-50%, -50%) rotate(0deg) scale(1.1); }
-            to { transform: translate(-50%, -50%) rotate(360deg) scale(1.1); }
-        }
-
+        /* 啟動狀態 */
         .activated #magic-circle-container {
             opacity: 1;
-            transform: translate(-50%, -50%) scale(1.1);
+            transform: translate(-50%, -50%) scale(1);
+            z-index: 100; /* 召喚後升至最前層 */
+            pointer-events: auto;
         }
 
-        /* 旋轉動畫獨立套用到圖片，不影響內容物 */
+        @keyframes rotate-magic {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* 旋轉動畫僅套用於魔法陣圖片 */
         .activated #magic-circle-img {
             animation: rotate-magic 20s linear infinite;
         }
@@ -178,11 +180,11 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
-            filter: drop-shadow(0 0 20px var(--gold));
+            filter: drop-shadow(0 0 25px var(--gold));
             z-index: 1;
         }
 
-        /* 召喚物容器 */
+        /* 召喚物結果 */
         #summon-result {
             position: relative;
             z-index: 10;
@@ -190,7 +192,7 @@
             flex-direction: column;
             align-items: center;
             opacity: 0;
-            transition: opacity 2s ease 1s; /* 稍微延遲出現 */
+            transition: opacity 1.5s ease 0.8s;
         }
 
         .activated #summon-result {
@@ -198,21 +200,22 @@
         }
 
         #creature-img {
-            width: 250px;
-            height: 250px;
+            width: 300px;
+            height: 300px;
             object-fit: contain;
-            filter: drop-shadow(0 0 15px white);
+            filter: drop-shadow(0 0 20px white);
             margin-bottom: 20px;
         }
 
         .success-text {
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             color: #3d1f0a;
             font-weight: bold;
             text-shadow: 0 0 15px white, 0 0 5px var(--gold);
             white-space: nowrap;
         }
 
+        /* 頂部訊息 */
         .status-msg {
             position: fixed;
             top: 30px;
@@ -223,15 +226,31 @@
             padding: 12px 35px;
             border-radius: 50px;
             font-weight: bold;
-            z-index: 100;
+            z-index: 200;
             display: none;
             box-shadow: 0 8px 25px rgba(0,0,0,0.5);
         }
+
+        /* 重新開始按鈕（成功後顯示） */
+        #restart-btn {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 110;
+            display: none;
+            background: #5d2e0e;
+            color: white;
+            padding: 10px 30px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        .activated #restart-btn { display: block; }
     </style>
 </head>
 <body>
 
-<div class="status-msg" id="msgBox">感知靈力中...</div>
+<div class="status-msg" id="msgBox">初始化召喚陣...</div>
 
 <div class="scroll-container" id="mainGame">
     <!-- UI 內容區塊 -->
@@ -240,23 +259,18 @@
         <p class="mb-12 text-amber-950 text-lg font-medium">請對準攝影機，結出手印召喚奇蹟</p>
         
         <div class="flex justify-center mb-16">
-            <!-- 火 -->
             <div class="flex flex-col items-center mx-8">
                 <div id="slot-0" class="element-slot active">
                     <img src="https://api.iconify.design/heroicons-outline/fire.svg" alt="火">
                 </div>
                 <span class="gesture-hint">火 (拳頭)</span>
             </div>
-
-            <!-- 風 -->
             <div class="flex flex-col items-center mx-8">
                 <div id="slot-1" class="element-slot">
                     <img src="https://api.iconify.design/ph/wind-bold.svg" alt="風">
                 </div>
                 <span class="gesture-hint">風 (布)</span>
             </div>
-
-            <!-- 雷 -->
             <div class="flex flex-col items-center mx-8">
                 <div id="slot-2" class="element-slot">
                     <img src="https://api.iconify.design/bi/lightning-charge.svg" alt="雷">
@@ -273,11 +287,14 @@
 
     <!-- 魔法陣容器與召喚結果 -->
     <div id="magic-circle-container">
+        <!-- 請確認檔名：魔法陣.png -->
         <img id="magic-circle-img" src="魔法陣.png">
         <div id="summon-result">
+            <!-- 請確認檔名：胡錦鳥.png -->
             <img id="creature-img" src="胡錦鳥.png" alt="胡錦鳥">
             <div class="success-text">你成功召喚了胡錦鳥</div>
         </div>
+        <div id="restart-btn" onclick="resetGame()">重新召喚</div>
     </div>
 
     <!-- 攝影機 -->
@@ -307,11 +324,13 @@
     }
 
     function resetGame() {
+        console.log("遊戲重設");
         currentStep = 0;
         isLocked = false;
         mainGame.classList.remove('activated');
         uiContent.classList.remove('hide-ui');
         videoContainer.style.opacity = '1';
+        videoContainer.style.pointerEvents = 'auto';
         
         for (let i = 0; i < 3; i++) {
             const slot = document.getElementById(`slot-${i}`);
@@ -325,8 +344,11 @@
     function onResults(results) {
         if (isLocked) return;
         let detectedGesture = "None";
+        
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
             const landmarks = results.multiHandLandmarks[0];
+            
+            // 判斷手指開合 (Y 軸座標越小代表越高)
             const fingerTips = [8, 12, 16, 20];
             const fingerMcp = [5, 9, 13, 17];
             let openFingers = 0;
@@ -334,6 +356,7 @@
                 if (landmarks[fingerTips[i]].y < landmarks[fingerMcp[i]].y) openFingers++;
             }
             
+            // 手勢辨識
             if (openFingers === 0) {
                 detectedGesture = "Fist";
                 gesturePreview.innerText = "火之力已匯聚";
@@ -347,7 +370,9 @@
                 gesturePreview.innerText = "手印解析中...";
             }
 
-            if (detectedGesture === sequence[currentStep]) handleStepSuccess();
+            if (detectedGesture === sequence[currentStep]) {
+                handleStepSuccess();
+            }
         } else {
             gesturePreview.innerText = "等待靈氣感應...";
         }
@@ -356,43 +381,65 @@
     function handleStepSuccess() {
         isLocked = true;
         const currentSlot = document.getElementById(`slot-${currentStep}`);
-        currentSlot.classList.remove('active');
-        currentSlot.classList.add('complete');
+        if (currentSlot) {
+            currentSlot.classList.remove('active');
+            currentSlot.classList.add('complete');
+        }
+        
         showMsg(`【元素共鳴：${stepNames[currentStep]}】`);
         currentStep++;
         
         if (currentStep < sequence.length) {
             const nextSlot = document.getElementById(`slot-${currentStep}`);
-            nextSlot.classList.add('active');
+            if (nextSlot) nextSlot.classList.add('active');
             hintElement.innerText = `◈ 接下來引導：${stepNames[currentStep]} ◈`;
             setTimeout(() => { isLocked = false; }, 1500);
         } else {
-            // 召喚成功，隱藏所有 UI 與攝影機
-            uiContent.classList.add('hide-ui');
-            videoContainer.style.opacity = '0';
-            mainGame.classList.add('activated');
-            showMsg("全元素契合！胡錦鳥降臨！");
+            console.log("召喚成功！啟動最終轉場");
+            // 執行隱藏與顯示邏輯
+            triggerFinalSummon();
         }
     }
 
+    function triggerFinalSummon() {
+        uiContent.classList.add('hide-ui');
+        videoContainer.style.opacity = '0';
+        videoContainer.style.pointerEvents = 'none';
+        
+        // 延遲一點點確保 UI 開始淡出後才放大魔法陣
+        setTimeout(() => {
+            mainGame.classList.add('activated');
+            showMsg("全元素契合！胡錦鳥降臨！");
+        }, 100);
+    }
+
+    // MediaPipe 初始化
     const hands = new Hands({
         locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
+
     hands.setOptions({
         maxNumHands: 1,
         modelComplexity: 1,
         minDetectionConfidence: 0.7,
         minTrackingConfidence: 0.7
     });
+
     hands.onResults(onResults);
 
     const camera = new Camera(videoElement, {
-        onFrame: async () => { await hands.send({image: videoElement}); },
-        width: 640, height: 480
+        onFrame: async () => {
+            await hands.send({image: videoElement});
+        },
+        width: 640,
+        height: 480
     });
 
     window.onload = () => {
-        camera.start().catch(err => showMsg("請檢查攝影機連結"));
+        camera.start().catch(err => {
+            showMsg("請檢查攝影機權限");
+            console.error("Camera Error:", err);
+        });
         resetGame();
     };
 </script>
